@@ -1,0 +1,197 @@
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.util.Random;
+
+public class TetrisGame extends JFrame {
+    private final int BOARD_WIDTH = 10;
+    private final int BOARD_HEIGHT = 20;
+    private final int TILE_SIZE = 30;
+    private Timer timer;
+    private boolean[][] board = new boolean[BOARD_HEIGHT][BOARD_WIDTH];
+    private Tetromino currentPiece;
+    private int currentX = 0;
+    private int currentY = 0;
+    private Random random = new Random();
+
+    public TetrisGame() {
+        setTitle("Tetris");
+        setSize(BOARD_WIDTH * TILE_SIZE, BOARD_HEIGHT * TILE_SIZE);
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        setLocationRelativeTo(null);
+        setResizable(false);
+
+        initGame();
+
+        addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                switch (e.getKeyCode()) {
+                    case KeyEvent.VK_LEFT -> movePiece(-1);
+                    case KeyEvent.VK_RIGHT -> movePiece(1);
+                    case KeyEvent.VK_DOWN -> dropPiece();
+                    case KeyEvent.VK_UP -> rotatePiece();
+                }
+                repaint();
+            }
+        });
+
+        setVisible(true);
+    }
+
+    private void initGame() {
+        spawnPiece();
+        timer = new Timer(500, e -> {
+            if (!moveDown()) {
+                mergePiece();
+                clearLines();
+                spawnPiece();
+                if (!isValidPosition(currentPiece, currentX, currentY)) {
+                    timer.stop();
+                    JOptionPane.showMessageDialog(this, "Game Over");
+                    dispose();
+                }
+            }
+            repaint();
+        });
+        timer.start();
+    }
+
+    private void spawnPiece() {
+        currentPiece = Tetromino.getRandomTetromino();
+        currentX = BOARD_WIDTH / 2 - 1;
+        currentY = 0;
+    }
+
+    private boolean moveDown() {
+        if (isValidPosition(currentPiece, currentX, currentY + 1)) {
+            currentY++;
+            return true;
+        }
+        return false;
+    }
+
+    private void movePiece(int dx) {
+        if (isValidPosition(currentPiece, currentX + dx, currentY)) {
+            currentX += dx;
+        }
+    }
+
+    private void dropPiece() {
+        while (moveDown()) {
+            // Drop piece
+        }
+    }
+
+    private void rotatePiece() {
+        Tetromino rotated = currentPiece.rotate();
+        if (isValidPosition(rotated, currentX, currentY)) {
+            currentPiece = rotated;
+        }
+    }
+
+    private boolean isValidPosition(Tetromino piece, int x, int y) {
+        for (int[] p : piece.getCoords()) {
+            int newX = x + p[0];
+            int newY = y + p[1];
+            if (newX < 0 || newX >= BOARD_WIDTH || newY < 0 || newY >= BOARD_HEIGHT) {
+                return false;
+            }
+            if (board[newY][newX]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private void mergePiece() {
+        for (int[] p : currentPiece.getCoords()) {
+            int x = currentX + p[0];
+            int y = currentY + p[1];
+            board[y][x] = true;
+        }
+    }
+
+    private void clearLines() {
+        for (int y = 0; y < BOARD_HEIGHT; y++) {
+            boolean full = true;
+            for (int x = 0; x < BOARD_WIDTH; x++) {
+                if (!board[y][x]) {
+                    full = false;
+                    break;
+                }
+            }
+            if (full) {
+                for (int row = y; row > 0; row--) {
+                    System.arraycopy(board[row - 1], 0, board[row], 0, BOARD_WIDTH);
+                }
+                for (int x = 0; x < BOARD_WIDTH; x++) {
+                    board[0][x] = false;
+                }
+            }
+        }
+    }
+
+    @Override
+    public void paint(Graphics g) {
+        super.paint(g);
+        g.translate(0, getInsets().top);
+        // Draw board
+        for (int y = 0; y < BOARD_HEIGHT; y++) {
+            for (int x = 0; x < BOARD_WIDTH; x++) {
+                if (board[y][x]) {
+                    drawTile(g, x, y, Color.BLUE);
+                }
+            }
+        }
+        // Draw current piece
+        for (int[] p : currentPiece.getCoords()) {
+            int x = currentX + p[0];
+            int y = currentY + p[1];
+            drawTile(g, x, y, Color.RED);
+        }
+    }
+
+    private void drawTile(Graphics g, int x, int y, Color color) {
+        g.setColor(color);
+        g.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+        g.setColor(Color.BLACK);
+        g.drawRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+    }
+
+    // Tetromino class
+    static class Tetromino {
+        private int[][] coords;
+
+        private Tetromino(int[][] coords) {
+            this.coords = coords;
+        }
+
+        public int[][] getCoords() {
+            return coords;
+        }
+
+        public Tetromino rotate() {
+            int[][] rotated = new int[coords.length][2];
+            for (int i = 0; i < coords.length; i++) {
+                rotated[i][0] = -coords[i][1];
+                rotated[i][1] = coords[i][0];
+            }
+            return new Tetromino(rotated);
+        }
+
+        public static Tetromino getRandomTetromino() {
+            int[][][] shapes = {
+                    {{0, 0}, {1, 0}, {0, 1}, {1, 1}}, // O
+                    {{0, 0}, {-1, 0}, {1, 0}, {2, 0}}, // I
+                    {{0, 0}, {-1, 0}, {0, 1}, {1, 1}}, // S
+                    {{0, 0}, {1, 0}, {0, 1}, {-1, 1}}, // Z
+                    {{0, 0}, {-1, 0}, {1, 0}, {0, 1}}, // T
+                    {{0, 0}, {-1, 0}, {-1, 1}, {0, 1}}, // L
+                    {{0, 0}, {1, 0}, {1, 1}, {0, 1}} // J
+            };
+            Random rand = new Random();
+            return new Tetromino(shapes[rand.nextInt(shapes.length)]);
+        }
+    }
+}
