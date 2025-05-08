@@ -1,0 +1,163 @@
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.util.Random;
+
+public class Minesweeper extends JFrame {
+    private static final int ROWS = 9;
+    private static final int COLS = 9;
+    private static final int MINES = 10;
+
+    private Cell[][] cells = new Cell[ROWS][COLS];
+    private boolean firstClick = true;
+    private int cellsRevealed = 0;
+
+    public Minesweeper() {
+        setTitle("Minesweeper");
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        setSize(400, 400);
+        setLayout(new GridLayout(ROWS, COLS));
+        setLocationRelativeTo(null);
+
+        initializeBoard();
+
+        setVisible(true);
+    }
+
+    private void initializeBoard() {
+        for (int row = 0; row < ROWS; row++) {
+            for (int col = 0; col < COLS; col++) {
+                Cell cell = new Cell(row, col);
+                cells[row][col] = cell;
+                add(cell);
+            }
+        }
+    }
+
+    private void placeMines(int excludeRow, int excludeCol) {
+        Random rand = new Random();
+        int minesPlaced = 0;
+        while (minesPlaced < MINES) {
+            int r = rand.nextInt(ROWS);
+            int c = rand.nextInt(COLS);
+            if ((r == excludeRow && c == excludeCol) || cells[r][c].isMine) continue;
+            cells[r][c].isMine = true;
+            minesPlaced++;
+        }
+
+        // Calculate adjacent mine counts
+        for (int row = 0; row < ROWS; row++) {
+            for (int col = 0; col < COLS; col++) {
+                if (!cells[row][col].isMine) {
+                    int count = countAdjacentMines(row, col);
+                    cells[row][col].adjacentMines = count;
+                }
+            }
+        }
+    }
+
+    private int countAdjacentMines(int row, int col) {
+        int count = 0;
+        for (int dr = -1; dr <= 1; dr++) {
+            for (int dc = -1; dc <= 1; dc++) {
+                int r = row + dr;
+                int c = col + dc;
+                if (r >= 0 && r < ROWS && c >= 0 && c < COLS && cells[r][c].isMine) {
+                    count++;
+                }
+            }
+        }
+        return count;
+    }
+
+    private void revealCell(int row, int col) {
+        Cell cell = cells[row][col];
+        if (cell.isRevealed || cell.isFlagged) return;
+
+        cell.reveal();
+        cellsRevealed++;
+
+        if (cell.adjacentMines == 0 && !cell.isMine) {
+            for (int dr = -1; dr <= 1; dr++) {
+                for (int dc = -1; dc <= 1; dc++) {
+                    int r = row + dr;
+                    int c = col + dc;
+                    if (r >= 0 && r < ROWS && c >= 0 && c < COLS) {
+                        revealCell(r, c);
+                    }
+                }
+            }
+        }
+    }
+
+    private void gameOver(boolean won) {
+        // Reveal all mines
+        for (int row = 0; row < ROWS; row++) {
+            for (int col = 0; col < COLS; col++) {
+                Cell cell = cells[row][col];
+                if (cell.isMine) {
+                    cell.setText("M");
+                    cell.setBackground(Color.RED);
+                }
+                cell.setEnabled(false);
+            }
+        }
+
+        String message = won ? "You won!" : "Game over!";
+        JOptionPane.showMessageDialog(this, message);
+        dispose();
+    }
+
+    private class Cell extends JButton {
+        int row, col;
+        boolean isMine = false;
+        boolean isRevealed = false;
+        boolean isFlagged = false;
+        int adjacentMines = 0;
+
+        public Cell(int row, int col) {
+            this.row = row;
+            this.col = col;
+            setPreferredSize(new Dimension(40, 40));
+            setFont(new Font("Arial", Font.BOLD, 14));
+            setMargin(new Insets(0, 0, 0, 0));
+            setFocusPainted(false);
+
+            addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    if (SwingUtilities.isRightMouseButton(e)) {
+                        if (!isRevealed) {
+                            isFlagged = !isFlagged;
+                            setText(isFlagged ? "F" : "");
+                        }
+                    } else {
+                        if (firstClick) {
+                            placeMines(row, col);
+                            firstClick = false;
+                        }
+                        if (isMine) {
+                            setBackground(Color.RED);
+                            setText("M");
+                            gameOver(false);
+                        } else {
+                            revealCell(row, col);
+                            if (cellsRevealed == ROWS * COLS - MINES) {
+                                gameOver(true);
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        public void reveal() {
+            if (isRevealed) return;
+            isRevealed = true;
+            setEnabled(false);
+            if (adjacentMines > 0) {
+                setText(String.valueOf(adjacentMines));
+            }
+        }
+    }
+}
