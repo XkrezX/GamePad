@@ -1,0 +1,132 @@
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.util.LinkedList;
+import java.util.Random;
+
+public class SnakeGame extends JFrame {
+    public SnakeGame() {
+        setTitle("Snake");
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        setResizable(false);
+        setSize(600, 400);
+        setLocationRelativeTo(null);
+
+        GamePanel panel = new GamePanel();
+        add(panel);
+        setVisible(true);
+        panel.startGame();
+    }
+
+    class GamePanel extends JPanel implements ActionListener, KeyListener {
+        private final int TILE_SIZE = 20;
+        private final int WIDTH = 30;
+        private final int HEIGHT = 20;
+        private final LinkedList<Point> snake = new LinkedList<>();
+        private Point food;
+        private int dx = 1, dy = 0;
+        private int score = 0;
+        private Timer timer;
+        private final Random rand = new Random();
+
+        public GamePanel() {
+            setPreferredSize(new Dimension(WIDTH * TILE_SIZE, HEIGHT * TILE_SIZE));
+            setBackground(Color.BLACK);
+            setFocusable(true);
+            addKeyListener(this);
+        }
+
+        public void startGame() {
+            snake.clear();
+            snake.add(new Point(WIDTH / 2, HEIGHT / 2));
+            placeFood();
+            dx = 1;
+            dy = 0;
+            score = 0;
+            timer = new Timer(100, this);
+            timer.start();
+        }
+
+        private void placeFood() {
+            while (true) {
+                int x = rand.nextInt(WIDTH);
+                int y = rand.nextInt(HEIGHT);
+                Point p = new Point(x, y);
+                if (!snake.contains(p)) {
+                    food = p;
+                    break;
+                }
+            }
+        }
+
+        private void move() {
+            Point head = new Point(snake.getFirst());
+            head.translate(dx, dy);
+
+            // Collision detection
+            if (head.x < 0 || head.x >= WIDTH || head.y < 0 || head.y >= HEIGHT || snake.contains(head)) {
+                timer.stop();
+                JOptionPane.showMessageDialog(this, "Game Over! Score: " + score);
+                if (score > GameLauncher.snakeRecord) {
+                    GameLauncher.snakeRecord = score;
+                }
+                SwingUtilities.getWindowAncestor(this).dispose();
+                return;
+            }
+
+            snake.addFirst(head);
+            if (head.equals(food)) {
+                score += 10;
+                placeFood();
+            } else {
+                snake.removeLast();
+            }
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            move();
+            repaint();
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+
+            // Snake
+            g.setColor(Color.GREEN);
+            for (Point p : snake) {
+                g.fillRect(p.x * TILE_SIZE, p.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+            }
+
+            // Food
+            g.setColor(Color.RED);
+            g.fillOval(food.x * TILE_SIZE, food.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+
+            // Score
+            g.setColor(Color.WHITE);
+            g.drawString("Score: " + score, 10, 15);
+        }
+
+        @Override
+        public void keyPressed(KeyEvent e) {
+            switch (e.getKeyCode()) {
+                case KeyEvent.VK_UP -> {
+                    if (dy == 0) { dx = 0; dy = -1; }
+                }
+                case KeyEvent.VK_DOWN -> {
+                    if (dy == 0) { dx = 0; dy = 1; }
+                }
+                case KeyEvent.VK_LEFT -> {
+                    if (dx == 0) { dx = -1; dy = 0; }
+                }
+                case KeyEvent.VK_RIGHT -> {
+                    if (dx == 0) { dx = 1; dy = 0; }
+                }
+            }
+        }
+
+        @Override public void keyReleased(KeyEvent e) {}
+        @Override public void keyTyped(KeyEvent e) {}
+    }
+}
