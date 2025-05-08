@@ -1,0 +1,69 @@
+import javax.swing.*;
+import java.awt.*;
+
+public class GameLauncher {
+    // Рекорди для ігор
+    public static int tetrisRecord = 0;
+    public static int minesweeperRecord = 0;
+    public static int game2048Record = 0;
+    public static int snakeRecord = 0;
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(GameLauncher::createAndShowGUI);
+    }
+
+    private static void createAndShowGUI() {
+        JFrame frame = new JFrame("Game Menu");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setSize(400, 500);
+        frame.setLayout(new GridLayout(9, 1, 10, 10));
+
+        // Лейбли з рекордами
+        JLabel tetrisRecordLabel = new JLabel("Tetris Record: " + tetrisRecord);
+        JLabel minesweeperRecordLabel = new JLabel("Minesweeper Record: " + minesweeperRecord);
+        JLabel game2048RecordLabel = new JLabel("2048 Record: " + game2048Record);
+        JLabel snakeRecordLabel = new JLabel("Snake Record: " + snakeRecord);
+
+        // Кнопки запуску
+        JButton tetrisButton = new JButton("Play Tetris");
+        JButton minesweeperButton = new JButton("Play Minesweeper");
+        JButton game2048Button = new JButton("Play 2048");
+        JButton snakeButton = new JButton("Play Snake");
+        JButton exitButton = new JButton("Exit");
+
+        // Обробники подій
+        tetrisButton.addActionListener(e -> {
+            new TetrisGame(); // Запуск гри Tetris
+        });
+        minesweeperButton.addActionListener(e -> {
+                    new Minesweeper(); // Запуск гри Minesweeper
+                });
+
+        snakeButton.addActionListener(e -> {
+                    new SnakeGame();  // Запуск гри Snake
+                    snakeRecordLabel.setText("Snake Record: " + snakeRecord); // Оновлення рекорду
+                });
+
+
+        game2048Button.addActionListener(e -> {
+            new Game2048();  // Запуск гри 2048
+            game2048RecordLabel.setText("2048 Record: " + game2048Record); // Оновлення
+        });
+
+        exitButton.addActionListener(e -> System.exit(0));
+
+        // Додавання на форму
+        frame.add(tetrisRecordLabel);
+        frame.add(tetrisButton);
+        frame.add(minesweeperRecordLabel);
+        frame.add(minesweeperButton);
+        frame.add(game2048RecordLabel);
+        frame.add(game2048Button);
+        frame.add(snakeRecordLabel);
+        frame.add(snakeButton);
+        frame.add(exitButton);
+
+        frame.setLocationRelativeTo(null);
+        frame.setVisible(true);
+    }
+}
